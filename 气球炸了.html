@@ -1,0 +1,1739 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>带血条系统的像素风脆皮气球</title>
+    <style>
+        /* 重置默认样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* 游戏容器样式 */
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            overflow: hidden;
+            height: 100vh;
+            position: relative;
+            touch-action: manipulation;
+        }
+
+        /* 游戏主区域 */
+        #gameContainer {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            cursor: crosshair;
+        }
+
+        /* 中央像素风气球样式 - 优化形象 */
+        #balloon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 100px;
+            background: #e74c3c;
+            border: 3px solid #c0392b;
+            border-radius: 8px;
+            z-index: 1;
+            image-rendering: pixelated;
+            position: relative;
+        }
+
+        /* 像素风气球细节 - 更完整的气球形象 */
+        #balloon::before {
+            content: '';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 12px solid transparent;
+            border-right: 12px solid transparent;
+            border-bottom: 20px solid #e74c3c;
+        }
+
+        #balloon::after {
+            content: '';
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 3px;
+            height: 25px;
+            background: #333;
+            border-radius: 2px;
+        }
+
+        /* 气球高光效果 */
+        .balloon-highlight {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            width: 20px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+
+        /* 气球血条容器 */
+        .balloon-health-container {
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid #333;
+            border-radius: 4px;
+            z-index: 2;
+        }
+
+        /* 气球血条 */
+        .balloon-health-bar {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            border-radius: 2px;
+            transition: width 0.1s ease;
+        }
+
+        /* 血条危险状态（残血） */
+        .balloon-health-bar.danger {
+            background: linear-gradient(90deg, #ff4444, #cc0000);
+            animation: healthDanger 0.5s infinite alternate;
+        }
+
+        @keyframes healthDanger {
+            0% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+
+        /* 像素风Tcamp鹅基础样式 */
+        .goose {
+            position: absolute;
+            width: 48px;
+            height: 48px;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            z-index: 2;
+            image-rendering: pixelated;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+
+        /* 像素风普通鹅 - 树枝块（优化形象） */
+        .goose.normal {
+            background: #8B4513;
+            border: 3px solid #654321;
+            border-radius: 6px;
+            position: relative;
+        }
+
+        .goose.normal::before {
+            content: '';
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            width: 12px;
+            height: 12px;
+            background: #228B22;
+            border: 2px solid #006400;
+            border-radius: 50%;
+        }
+
+        .goose.normal::after {
+            content: '';
+            position: absolute;
+            top: 20px;
+            right: 8px;
+            width: 10px;
+            height: 10px;
+            background: #228B22;
+            border: 2px solid #006400;
+            border-radius: 50%;
+        }
+
+        /* 树枝纹理 */
+        .goose.normal .branch-texture {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px),
+                repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px);
+        }
+
+        /* 像素风摇晃鹅 - 榴莲（优化形象） */
+        .goose.shake {
+            background: #DAA520;
+            border: 3px solid #B8860B;
+            border-radius: 8px;
+            position: relative;
+            animation: shakeGlow 0.5s infinite alternate;
+        }
+
+        .goose.shake::before {
+            content: '';
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            width: 8px;
+            height: 8px;
+            background: #8B4513;
+            border: 1px solid #654321;
+            box-shadow: 
+                10px 0 0 #8B4513, 
+                5px 5px 0 #8B4513, 
+                0 10px 0 #8B4513, 
+                10px 10px 0 #8B4513,
+                2px 2px 0 #654321,
+                8px 2px 0 #654321,
+                2px 8px 0 #654321,
+                8px 8px 0 #654321;
+        }
+
+        .goose.shake::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            right: 2px;
+            bottom: 2px;
+            background: 
+                radial-gradient(circle at 20% 20%, #B8860B 2px, transparent 2px),
+                radial-gradient(circle at 80% 20%, #B8860B 2px, transparent 2px),
+                radial-gradient(circle at 20% 80%, #B8860B 2px, transparent 2px),
+                radial-gradient(circle at 80% 80%, #B8860B 2px, transparent 2px),
+                radial-gradient(circle at 50% 50%, #B8860B 1px, transparent 1px);
+            background-size: 12px 12px;
+        }
+
+        /* 像素风分裂鹅 - 鸽子（优化形象） */
+        .goose.split {
+            background: #FFFFFF;
+            border: 3px solid #DDD;
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .goose.split::before {
+            content: '';
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-bottom: 12px solid #FFD700;
+        }
+
+        .goose.split::after {
+            content: '';
+            position: absolute;
+            top: 15px;
+            right: 5px;
+            width: 10px;
+            height: 4px;
+            background: #FF69B4;
+            border: 1px solid #FF1493;
+            border-radius: 2px;
+        }
+
+        /* 鸽子眼睛 */
+        .goose.split .eye {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            width: 4px;
+            height: 4px;
+            background: #000;
+            border-radius: 50%;
+        }
+
+        .goose.split .eye::after {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            width: 2px;
+            height: 2px;
+            background: #FFF;
+            border-radius: 50%;
+        }
+
+        /* 像素风鸽子蛋 */
+        .goose.egg {
+            background: #F5F5DC;
+            border: 3px solid #DDD;
+            border-radius: 50%;
+            position: relative;
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            animation: eggPulse 1s infinite alternate;
+        }
+
+        .goose.egg::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 16px;
+            height: 20px;
+            background: #FFFACD;
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            border: 2px solid #DDD;
+        }
+
+        .goose.egg::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 8px;
+            height: 8px;
+            background: #FFE4B5;
+            border-radius: 50%;
+            border: 1px solid #DDD;
+        }
+
+        /* 鸽子蛋脉动动画 */
+        @keyframes eggPulse {
+            0% { 
+                transform: scale(1);
+                box-shadow: 0 0 10px rgba(245, 245, 220, 0.6);
+            }
+            100% { 
+                transform: scale(1.1);
+                box-shadow: 0 0 20px rgba(245, 245, 220, 0.9);
+            }
+        }
+
+        /* 摇晃发光动画 */
+        @keyframes shakeGlow {
+            0% { 
+                transform: scale(1) rotate(0deg);
+                box-shadow: 0 0 15px rgba(218, 165, 32, 0.6);
+            }
+            100% { 
+                transform: scale(1.05) rotate(3deg);
+                box-shadow: 0 0 25px rgba(218, 165, 32, 0.9);
+            }
+        }
+
+        /* 被点击后变胖的效果 */
+        .goose.clicked {
+            transform: scale(1.3);
+            opacity: 0.8;
+        }
+
+        /* 榴莲切水果提示效果 */
+        .shake-hint {
+            position: absolute;
+            top: -15px;
+            left: -15px;
+            width: 78px;
+            height: 78px;
+            pointer-events: none;
+            display: none;
+            z-index: 3;
+        }
+
+        .shake-hint-line {
+            position: absolute;
+            width: 60px;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, #fff, transparent);
+            border-radius: 2px;
+            opacity: 0;
+            animation: swipeHint 1s ease-in-out infinite;
+        }
+
+        .shake-hint-line:nth-child(1) {
+            top: 20px;
+            left: 10px;
+            animation-delay: 0s;
+        }
+
+        .shake-hint-line:nth-child(2) {
+            top: 35px;
+            left: 10px;
+            animation-delay: 0.2s;
+        }
+
+        .shake-hint-line:nth-child(3) {
+            top: 50px;
+            left: 10px;
+            animation-delay: 0.4s;
+        }
+
+        @keyframes swipeHint {
+            0% {
+                opacity: 0;
+                transform: translateX(-20px) scale(0.8);
+            }
+            50% {
+                opacity: 1;
+                transform: translateX(0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateX(20px) scale(0.8);
+            }
+        }
+
+        /* 长按进度条 */
+        .hold-progress {
+            position: absolute;
+            top: -10px;
+            left: -3px;
+            height: 5px;
+            background: #4caf50;
+            border-radius: 3px;
+            display: none;
+            transition: width 0.1s ease;
+        }
+
+        /* 爆炸效果 */
+        .explosion {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle, #ff4444, #ff6666, #ff8888, transparent);
+            animation: explode 0.4s ease-out forwards;
+            z-index: 3;
+        }
+
+        @keyframes explode {
+            0% {
+                transform: scale(0.3);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(2.5);
+                opacity: 0;
+            }
+        }
+
+        /* 切水果轨迹效果 */
+        .slash-trail {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: #fff;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 4;
+            box-shadow: 0 0 8px #fff, 0 0 16px #fff, 0 0 24px #fff;
+        }
+
+        /* 游戏信息显示区域 */
+        #gameInfo {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            color: #ecf0f1;
+            font-size: 20px;
+            font-weight: bold;
+            z-index: 10;
+            background: rgba(52, 73, 94, 0.9);
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-family: 'Courier New', monospace;
+            border: 2px solid #34495e;
+        }
+
+        /* 难度等级显示 */
+        #difficultyLevel {
+            position: fixed;
+            top: 90px;
+            left: 20px;
+            color: #ecf0f1;
+            font-size: 16px;
+            background: rgba(52, 73, 94, 0.9);
+            padding: 8px 20px;
+            border-radius: 18px;
+            z-index: 10;
+            font-family: 'Courier New', monospace;
+            border: 2px solid #34495e;
+        }
+
+        /* 操作提示 */
+        #instructions {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            color: #ecf0f1;
+            font-size: 14px;
+            background: rgba(52, 73, 94, 0.9);
+            padding: 10px 20px;
+            border-radius: 10px;
+            z-index: 10;
+            text-align: center;
+            display: block !important;
+            font-family: 'Courier New', monospace;
+            border: 2px solid #34495e;
+        }
+
+        /* 游戏结束弹窗 */
+        #gameOver {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        /* 弹窗内容 */
+        .modal-content {
+            background: #34495e;
+            padding: 50px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+            max-width: 450px;
+            color: #ecf0f1;
+            font-family: 'Courier New', monospace;
+            border: 3px solid #2c3e50;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 25px;
+            color: #ecf0f1;
+            font-size: 32px;
+        }
+
+        .modal-content p {
+            margin-bottom: 25px;
+            color: #bdc3c7;
+            font-size: 18px;
+            line-height: 1.6;
+        }
+
+        .restart-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Courier New', monospace;
+            border: 2px solid #229954;
+        }
+
+        .restart-btn:hover {
+            background: #229954;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <!-- 游戏主容器 -->
+    <div id="gameContainer">
+        <!-- 中央像素风气球目标 -->
+        <div id="balloon">
+            <div class="balloon-highlight"></div>
+            <div class="balloon-health-container">
+                <div class="balloon-health-bar" id="balloonHealthBar"></div>
+            </div>
+        </div>
+        
+        <!-- 游戏信息显示 -->
+        <div id="gameInfo">
+            <div>剩余时间: <span id="timeLeft">60</span>秒</div>
+            <div>得分: <span id="score">0</span></div>
+        </div>
+        
+        <!-- 难度等级显示 -->
+        <div id="difficultyLevel">等级: 1 (新手)</div>
+        
+        <!-- 操作提示 -->
+        <div id="instructions">
+            树枝块：点击3次 | 榴莲：切水果式攻击 | 鸽子：长按1秒 | 鸽子蛋：点击一下
+        </div>
+    </div>
+
+    <!-- 游戏结束弹窗 -->
+    <div id="gameOver">
+        <div class="modal-content">
+            <h2 id="gameResult">游戏结束</h2>
+            <p id="resultMessage"></p>
+            <button class="restart-btn" onclick="restartGame()">重新开始</button>
+        </div>
+    </div>
+
+    <!-- 音频元素 -->
+    <audio id="backgroundMusic" loop>
+        <source src="https://static.tcamp.qq.com/gallery/prod/2026/1/17/ebd131079efa4176/9ff24548-3dc0-4d95-ac56-1add9b88d8a4.mp3" type="audio/mpeg">
+        您的浏览器不支持音频播放。
+    </audio>
+    
+    <audio id="explosionSound">
+        <source src="https://static.tcamp.qq.com/gallery/prod/2026/1/17/ebd131079efa4176/4afb2b1f-4266-45d7-ae73-6fbd5c181b68.wav" type="audio/wav">
+        您的浏览器不支持音频播放。
+    </audio>
+    
+    <audio id="failSound">
+        <source src="https://static.tcamp.qq.com/gallery/prod/2026/1/17/ebd131079efa4176/5c1ebf4d-75ae-4af9-bb94-51acad8667e1.wav" type="audio/wav">
+        您的浏览器不支持音频播放。
+    </audio>
+    
+    <audio id="successSound">
+        <source src="https://static.tcamp.qq.com/gallery/prod/2026/1/17/ebd131079efa4176/ca3816ee-ed19-4ec0-95d2-da6f75957f00.wav" type="audio/wav">
+        您的浏览器不支持音频播放。
+    </audio>
+
+    <script>
+        // 游戏状态管理
+        let gameState = {
+            isRunning: false,
+            timeLeft: 60,
+            score: 0,
+            gameTimer: null,
+            spawnTimer: null,
+            gooseSpeed: 0.8,
+            gooseTypes: ['normal'],
+            level: 1,
+            baseSpawnRate: 2000,
+            currentSpawnRate: 2000,
+            balloonHealth: 100,
+            balloonDamageTimer: null,
+            damageAccumulation: 0,
+            attackingGeese: new Set(), // 存储正在攻击气球的鹅
+            musicStarted: false
+        };
+
+        // 难度等级配置
+        const difficultyConfig = {
+            1: { name: "新手", spawnRate: 2000, speedMultiplier: 0.8, types: ['normal', 'shake', 'split'] },
+            2: { name: "简单", spawnRate: 1800, speedMultiplier: 1.0, types: ['normal', 'shake', 'split'] },
+            3: { name: "普通", spawnRate: 1600, speedMultiplier: 1.2, types: ['normal', 'shake', 'split'] },
+            4: { name: "困难", spawnRate: 1400, speedMultiplier: 1.4, types: ['normal', 'shake', 'split'] },
+            5: { name: "专家", spawnRate: 1200, speedMultiplier: 1.6, types: ['normal', 'shake', 'split'] }
+        };
+
+        // 获取DOM元素
+        const gameContainer = document.getElementById('gameContainer');
+        const balloon = document.getElementById('balloon');
+        const balloonHealthBar = document.getElementById('balloonHealthBar');
+        const timeLeftDisplay = document.getElementById('timeLeft');
+        const scoreDisplay = document.getElementById('score');
+        const difficultyDisplay = document.getElementById('difficultyLevel');
+        const gameOverModal = document.getElementById('gameOver');
+        const gameResult = document.getElementById('gameResult');
+        const resultMessage = document.getElementById('resultMessage');
+        const instructions = document.getElementById('instructions');
+
+        // 获取音频元素
+        const backgroundMusic = document.getElementById('backgroundMusic');
+        const explosionSound = document.getElementById('explosionSound');
+        const failSound = document.getElementById('failSound');
+        const successSound = document.getElementById('successSound');
+
+        // 设置音频音量
+        backgroundMusic.volume = 0.3;
+        explosionSound.volume = 0.5;
+        failSound.volume = 0.6;
+        successSound.volume = 0.6;
+
+        // 全局鼠标事件监听器
+        let globalMousePosition = { x: 0, y: 0 };
+        let slashTrails = [];
+        let activeGoose = null;
+        
+        document.addEventListener('mousemove', (event) => {
+            globalMousePosition.x = event.clientX;
+            globalMousePosition.y = event.clientY;
+            createSlashTrail(event.clientX, event.clientY);
+        });
+
+        // 创建切水果轨迹效果
+        function createSlashTrail(x, y) {
+            const trail = document.createElement('div');
+            trail.className = 'slash-trail';
+            trail.style.left = x + 'px';
+            trail.style.top = y + 'px';
+            gameContainer.appendChild(trail);
+            
+            slashTrails.push(trail);
+            
+            setTimeout(() => {
+                if (trail.parentNode) {
+                    trail.parentNode.removeChild(trail);
+                }
+                const index = slashTrails.indexOf(trail);
+                if (index > -1) {
+                    slashTrails.splice(index, 1);
+                }
+            }, 200);
+        }
+
+        // 游戏初始化
+        function initGame() {
+            gameState = {
+                isRunning: true,
+                timeLeft: 60,
+                score: 0,
+                gameTimer: null,
+                spawnTimer: null,
+                gooseSpeed: 0.8,
+                gooseTypes: ['normal', 'shake', 'split'],
+                level: 1,
+                baseSpawnRate: 2000,
+                currentSpawnRate: 2000,
+                balloonHealth: 100,
+                balloonDamageTimer: null,
+                damageAccumulation: 0,
+                attackingGeese: new Set(),
+                musicStarted: false
+            };
+            
+            // 清除所有现有的鹅和轨迹
+            const existingGeese = document.querySelectorAll('.goose');
+            existingGeese.forEach(goose => goose.remove());
+            
+            slashTrails.forEach(trail => {
+                if (trail.parentNode) {
+                    trail.parentNode.removeChild(trail);
+                }
+            });
+            slashTrails = [];
+            activeGoose = null;
+            
+            // 重置气球血条
+            updateBalloonHealthBar();
+            
+            // 隐藏游戏结束弹窗
+            gameOverModal.style.display = 'none';
+            
+            // 确保操作说明显示
+            if (instructions) {
+                instructions.style.display = 'block';
+            }
+            
+            // 更新难度显示
+            updateDifficultyDisplay();
+            
+            // 开始游戏计时器
+            startGameTimer();
+            
+            // 开始生成鹅
+            startSpawning();
+            
+            // 开始背景音乐
+            startBackgroundMusic();
+        }
+
+        // 开始背景音乐
+        function startBackgroundMusic() {
+            if (!gameState.musicStarted) {
+                backgroundMusic.play().then(() => {
+                    gameState.musicStarted = true;
+                }).catch(error => {
+                    console.log('背景音乐播放失败:', error);
+                });
+            }
+        }
+
+        // 停止背景音乐
+        function stopBackgroundMusic() {
+            backgroundMusic.pause();
+            backgroundMusic.currentTime = 0;
+        }
+
+        // 播放爆炸音效
+        function playExplosionSound() {
+            explosionSound.currentTime = 0;
+            explosionSound.play().catch(error => {
+                console.log('爆炸音效播放失败:', error);
+            });
+        }
+
+        // 播放失败音效
+        function playFailSound() {
+            failSound.currentTime = 0;
+            failSound.play().catch(error => {
+                console.log('失败音效播放失败:', error);
+            });
+        }
+
+        // 播放成功音效
+        function playSuccessSound() {
+            successSound.currentTime = 0;
+            successSound.play().catch(error => {
+                console.log('成功音效播放失败:', error);
+            });
+        }
+
+        // 更新气球血条显示
+        function updateBalloonHealthBar() {
+            const healthPercent = (gameState.balloonHealth / 100) * 100;
+            balloonHealthBar.style.width = healthPercent + '%';
+            
+            // 危险状态（血量低于30%）- 残血时显示红色
+            if (gameState.balloonHealth <= 30) {
+                balloonHealthBar.classList.add('danger');
+            } else {
+                balloonHealthBar.classList.remove('danger');
+            }
+        }
+
+        // 气球受到伤害 - 调整为3秒内击破
+        function damageBalloon(amount) {
+            if (!gameState.isRunning) return;
+            
+            gameState.balloonHealth -= amount;
+            gameState.damageAccumulation += amount;
+            
+            // 限制血量不低于0
+            if (gameState.balloonHealth < 0) {
+                gameState.balloonHealth = 0;
+            }
+            
+            updateBalloonHealthBar();
+            
+            // 检查气球是否被摧毁 - 只有血条完全耗尽才会炸
+            if (gameState.balloonHealth <= 0) {
+                balloonDestroyed();
+            }
+        }
+
+        // 气球被摧毁
+        function balloonDestroyed() {
+            gameState.isRunning = false;
+            clearInterval(gameState.gameTimer);
+            clearInterval(gameState.spawnTimer);
+            clearInterval(gameState.balloonDamageTimer);
+            
+            // 停止背景音乐并播放失败音效
+            stopBackgroundMusic();
+            playFailSound();
+            
+            gameResult.textContent = '💥 气球炸了！';
+            resultMessage.innerHTML = `最终得分：${gameState.score}<br>坚持时间：${60 - gameState.timeLeft}秒<br>失败时等级：${gameState.level}`;
+            gameOverModal.style.display = 'flex';
+        }
+
+        // 开始气球伤害累积计时器 - 调整为3秒内击破
+        function startBalloonDamageTimer() {
+            if (gameState.balloonDamageTimer) {
+                clearInterval(gameState.balloonDamageTimer);
+            }
+            
+            // 计算3秒击破需要的伤害：100血/3秒 = 33.33血/秒 = 3.33血/100ms
+            const damagePer100ms = 100 / 30; // 30个100ms间隔 = 3秒
+            
+            gameState.balloonDamageTimer = setInterval(() => {
+                if (!gameState.isRunning) return;
+                
+                // 每100毫秒对气球造成相应伤害，确保3秒内击破
+                damageBalloon(damagePer100ms);
+            }, 100);
+        }
+
+        // 停止气球伤害计时器
+        function stopBalloonDamageTimer() {
+            if (gameState.balloonDamageTimer) {
+                clearInterval(gameState.balloonDamageTimer);
+                gameState.balloonDamageTimer = null;
+            }
+        }
+
+        // 更新难度等级显示
+        function updateDifficultyDisplay() {
+            const config = difficultyConfig[gameState.level];
+            difficultyDisplay.textContent = `等级: ${gameState.level} (${config.name})`;
+        }
+
+        // 游戏计时器 - 60秒倒计时
+        function startGameTimer() {
+            gameState.gameTimer = setInterval(() => {
+                gameState.timeLeft--;
+                timeLeftDisplay.textContent = gameState.timeLeft;
+                
+                if (gameState.timeLeft % 20 === 0 && gameState.timeLeft < 60) {
+                    levelUp();
+                }
+                
+                if (gameState.timeLeft <= 0) {
+                    winGame();
+                }
+            }, 1000);
+        }
+
+        // 升级系统
+        function levelUp() {
+            if (gameState.level >= 5) return;
+            
+            gameState.level++;
+            const config = difficultyConfig[gameState.level];
+            
+            gameState.currentSpawnRate = config.spawnRate;
+            gameState.gooseSpeed = config.speedMultiplier;
+            gameState.gooseTypes = [...config.types];
+            
+            if (gameState.spawnTimer) {
+                clearInterval(gameState.spawnTimer);
+                startSpawning();
+            }
+            
+            updateDifficultyDisplay();
+        }
+
+        // 开始生成鹅
+        function startSpawning() {
+            gameState.spawnTimer = setInterval(() => {
+                if (!gameState.isRunning) return;
+                spawnGoose();
+            }, gameState.currentSpawnRate);
+        }
+
+        // 生成单个鹅
+        function spawnGoose() {
+            const goose = document.createElement('div');
+            goose.className = 'goose';
+            
+            // 从当前可用的鹅类型中随机选择
+            const randomType = gameState.gooseTypes[Math.floor(Math.random() * gameState.gooseTypes.length)];
+            goose.classList.add(randomType);
+            
+            // 为不同类型的鹅添加特殊元素
+            if (randomType === 'normal') {
+                const branchTexture = document.createElement('div');
+                branchTexture.className = 'branch-texture';
+                goose.appendChild(branchTexture);
+            } else if (randomType === 'split') {
+                const eye = document.createElement('div');
+                eye.className = 'eye';
+                goose.appendChild(eye);
+            }
+            
+            const side = Math.floor(Math.random() * 4);
+            let startX, startY;
+            
+            switch(side) {
+                case 0:
+                    startX = Math.random() * window.innerWidth;
+                    startY = -60;
+                    break;
+                case 1:
+                    startX = window.innerWidth + 60;
+                    startY = Math.random() * window.innerHeight;
+                    break;
+                case 2:
+                    startX = Math.random() * window.innerWidth;
+                    startY = window.innerHeight + 60;
+                    break;
+                case 3:
+                    startX = -60;
+                    startY = Math.random() * window.innerHeight;
+                    break;
+            }
+            
+            goose.style.left = startX + 'px';
+            goose.style.top = startY + 'px';
+            
+            // 树枝鹅点击3次才爆（实际3次），其他类型保持不变
+            // 注意：文字提示显示"点击3次"，实际也是3次
+            const maxClicks = randomType === 'normal' ? 3 : (randomType === 'shake' ? 5 : 2);
+            
+            goose.gooseData = {
+                type: randomType,
+                clicked: false,
+                clickCount: 0,
+                maxClicks: maxClicks, // 树枝鹅实际需要点击3次
+                speed: gameState.gooseSpeed,
+                isExploding: false,
+                mouseDownTime: 0,
+                mouseDownStartPos: { x: 0, y: 0 },
+                lastX: 0,
+                shakeCount: 0,
+                totalShakeDistance: 0,
+                slashCount: 0,
+                slashPositions: [],
+                slashInterval: null,
+                isSlashing: false,
+                accumulatedHoldTime: 0,
+                accumulatedShakeCount: 0,
+                lastShakeTime: 0,
+                lastHoldTime: 0,
+                holdStartTime: 0,
+                slashStartTime: 0,
+                lastActiveTime: Date.now(),
+                continuousOperation: false,
+                operationTimeout: null,
+                autoExplodeTimer: null,
+                isAttacking: false,
+                touchStartTime: 0,
+                touchStartPos: { x: 0, y: 0 }
+            };
+            
+            // 为不同类型的鹅添加特殊UI元素
+            if (randomType === 'shake') {
+                const hintContainer = document.createElement('div');
+                hintContainer.className = 'shake-hint';
+                hintContainer.innerHTML = `
+                    <div class="shake-hint-line"></div>
+                    <div class="shake-hint-line"></div>
+                    <div class="shake-hint-line"></div>
+                `;
+                goose.appendChild(hintContainer);
+            } else if (randomType === 'split') {
+                const holdBar = document.createElement('div');
+                holdBar.className = 'hold-progress';
+                goose.appendChild(holdBar);
+            }
+            
+            // 添加鼠标事件
+            goose.addEventListener('click', handleGooseClick);
+            goose.addEventListener('mousedown', handleMouseDown);
+            goose.addEventListener('mousemove', handleMouseMove);
+            goose.addEventListener('mouseup', handleMouseUp);
+            goose.addEventListener('mouseleave', handleMouseLeave);
+            
+            // 添加触摸事件以支持手机端
+            goose.addEventListener('touchstart', handleTouchStart, { passive: false });
+            goose.addEventListener('touchmove', handleTouchMove, { passive: false });
+            goose.addEventListener('touchend', handleTouchEnd, { passive: false });
+            goose.addEventListener('touchcancel', handleTouchCancel, { passive: false });
+            
+            gameContainer.appendChild(goose);
+            moveGoose(goose);
+        }
+
+        // 触摸开始事件处理 - 改进手机端长按灵敏度
+        function handleTouchStart(event) {
+            event.preventDefault();
+            const touch = event.touches[0];
+            const goose = findNearestGoose(touch.clientX, touch.clientY);
+            if (!goose || goose.gooseData.isExploding) return;
+            
+            // 设置当前活跃鹅
+            activeGoose = goose;
+            
+            const currentTime = Date.now();
+            goose.gooseData.touchStartTime = currentTime;
+            goose.gooseData.touchStartPos = { x: touch.clientX, y: touch.clientY };
+            goose.gooseData.mouseDownTime = currentTime;
+            goose.gooseData.mouseDownStartPos = { x: touch.clientX, y: touch.clientY };
+            goose.gooseData.lastX = touch.clientX;
+            goose.gooseData.lastActiveTime = currentTime;
+            goose.gooseData.continuousOperation = true;
+            goose.gooseData.holdStartTime = currentTime;
+            goose.gooseData.slashStartTime = currentTime;
+            
+            // 清除之前的操作超时
+            if (goose.gooseData.operationTimeout) {
+                clearTimeout(goose.gooseData.operationTimeout);
+            }
+            
+            // 清除之前的自动爆炸定时器
+            if (goose.gooseData.autoExplodeTimer) {
+                clearInterval(goose.gooseData.autoExplodeTimer);
+            }
+            
+            if (goose.gooseData.type === 'shake') {
+                goose.gooseData.isSlashing = true;
+                goose.gooseData.slashPositions = [{x: touch.clientX, y: touch.clientY, time: currentTime}];
+                
+                // 显示切水果提示动画
+                const hintContainer = goose.querySelector('.shake-hint');
+                if (hintContainer) {
+                    hintContainer.style.display = 'block';
+                }
+                
+                // 开始切水果检测
+                goose.gooseData.slashInterval = setInterval(() => {
+                    checkSlashExplosion(goose);
+                }, 50);
+            } else if (goose.gooseData.type === 'split') {
+                const holdBar = goose.querySelector('.hold-progress');
+                if (holdBar) {
+                    holdBar.style.display = 'block';
+                }
+                goose.gooseData.holdStartTime = currentTime;
+                goose.gooseData.holdInterval = setInterval(() => {
+                    updateHoldProgress(goose);
+                }, 16);
+                
+                // 鸽子鹅：每秒检查一次是否达到爆炸条件，达到后立即爆炸
+                goose.gooseData.autoExplodeTimer = setInterval(() => {
+                    checkSplitAutoExplosion(goose);
+                }, 100);
+            } else if (goose.gooseData.type === 'egg') {
+                // 鸽子蛋：触摸开始时立即爆炸
+                explodeGoose(goose);
+            }
+        }
+
+        // 触摸移动事件处理
+        function handleTouchMove(event) {
+            event.preventDefault();
+            const touch = event.touches[0];
+            const goose = findNearestGoose(touch.clientX, touch.clientY);
+            if (!goose || goose.gooseData.isExploding) return;
+            
+            const currentTime = Date.now();
+            goose.gooseData.lastActiveTime = currentTime;
+            
+            if (goose.gooseData.type === 'shake' && goose.gooseData.isSlashing) {
+                // 记录切水果的轨迹点
+                goose.gooseData.slashPositions.push({
+                    x: touch.clientX, 
+                    y: touch.clientY, 
+                    time: currentTime 
+                });
+                
+                // 只保留最近的点
+                if (goose.gooseData.slashPositions.length > 20) {
+                    goose.gooseData.slashPositions.shift();
+                }
+            }
+        }
+
+        // 触摸结束事件处理
+        function handleTouchEnd(event) {
+            event.preventDefault();
+            const touch = event.changedTouches[0];
+            const goose = findNearestGoose(touch.clientX, touch.clientY);
+            if (!goose || goose.gooseData.isExploding) return;
+            
+            const currentTime = Date.now();
+            const holdDuration = currentTime - goose.gooseData.touchStartTime;
+            
+            goose.gooseData.lastActiveTime = currentTime;
+            
+            if (goose.gooseData.type === 'shake') {
+                // 榴莲：累计操作时间，不直接停止
+                goose.gooseData.accumulatedShakeCount += holdDuration;
+                
+                // 隐藏切水果提示动画
+                const hintContainer = goose.querySelector('.shake-hint');
+                if (hintContainer) {
+                    hintContainer.style.display = 'none';
+                }
+                
+                // 设置操作超时，1.5秒无操作后重置
+                goose.gooseData.operationTimeout = setTimeout(() => {
+                    resetShakeOperation(goose);
+                }, 1500);
+                
+            } else if (goose.gooseData.type === 'split') {
+                // 鸽子：累计时间，但自动爆炸机制会处理
+                goose.gooseData.accumulatedHoldTime += holdDuration;
+                
+                // 如果累计时间已经足够，立即爆炸
+                if (goose.gooseData.accumulatedHoldTime >= 1000) {
+                    explodeGoose(goose);
+                } else {
+                    const remainingTime = 1000 - goose.gooseData.accumulatedHoldTime;
+                    const holdBar = goose.querySelector('.hold-progress');
+                    if (holdBar) {
+                        holdBar.style.width = (goose.gooseData.accumulatedHoldTime / 1000 * 100) + '%';
+                        holdBar.title = `还需长按${Math.ceil(remainingTime / 1000 * 10) / 10}秒`;
+                    }
+                }
+            } else {
+                // 树枝块：点击处理，确保点击3次才爆
+                if (goose.gooseData.type === 'normal') {
+                    goose.gooseData.clickCount++;
+                    
+                    goose.classList.add('clicked');
+                    const scale = 1 + (goose.gooseData.clickCount * 0.3);
+                    goose.style.transform = `scale(${scale})`;
+                    
+                    // 只有达到最大点击次数（3次）才爆炸
+                    if (goose.gooseData.clickCount >= goose.gooseData.maxClicks) {
+                        explodeGoose(goose);
+                    }
+                }
+            }
+            
+            // 清理定时器
+            if (goose.gooseData.holdInterval) {
+                clearInterval(goose.gooseData.holdInterval);
+            }
+            
+            // 隐藏进度指示器
+            const holdBar = goose.querySelector('.hold-progress');
+            if (holdBar) holdBar.style.display = 'none';
+        }
+
+        // 触摸取消事件处理
+        function handleTouchCancel(event) {
+            event.preventDefault();
+            const goose = activeGoose;
+            if (!goose || goose.gooseData.isExploding) return;
+            
+            // 重置操作状态
+            if (goose.gooseData.slashInterval) {
+                clearInterval(goose.gooseData.slashInterval);
+            }
+            if (goose.gooseData.holdInterval) {
+                clearInterval(goose.gooseData.holdInterval);
+            }
+            if (goose.gooseData.autoExplodeTimer) {
+                clearInterval(goose.gooseData.autoExplodeTimer);
+            }
+            
+            goose.gooseData.isSlashing = false;
+            goose.gooseData.continuousOperation = false;
+            
+            const hintContainer = goose.querySelector('.shake-hint');
+            const holdBar = goose.querySelector('.hold-progress');
+            if (hintContainer) hintContainer.style.display = 'none';
+            if (holdBar) holdBar.style.display = 'none';
+        }
+
+        // 检查鸽子鹅自动爆炸
+        function checkSplitAutoExplosion(goose) {
+            if (goose.gooseData.isExploding) return;
+            
+            const currentTime = Date.now();
+            const holdDuration = currentTime - goose.gooseData.holdStartTime + goose.gooseData.accumulatedHoldTime;
+            
+            // 累计时间达到1秒立即爆炸，不需要等待松手
+            if (holdDuration >= 1000) {
+                explodeGoose(goose);
+            }
+        }
+
+        // 检查切水果是否达到爆炸条件
+        function checkSlashExplosion(goose) {
+            if (goose.gooseData.isExploding) return;
+            
+            const currentTime = Date.now();
+            const recentPositions = goose.gooseData.slashPositions.filter(pos => 
+                currentTime - pos.time < 1500 // 延长到1.5秒，更容易达成
+            );
+            
+            if (recentPositions.length >= 6) { // 降低到6个点
+                // 检查是否有足够的切割动作
+                let slashCount = 0;
+                for (let i = 1; i < recentPositions.length; i++) {
+                    const distance = Math.sqrt(
+                        Math.pow(recentPositions[i].x - recentPositions[i-1].x, 2) +
+                        Math.pow(recentPositions[i].y - recentPositions[i-1].y, 2)
+                    );
+                    const timeDiff = recentPositions[i].time - recentPositions[i-1].time;
+                    
+                    // 降低速度要求，更容易切割
+                    if (distance > 12 && timeDiff < 250) {
+                        slashCount++;
+                    }
+                }
+                
+                if (slashCount >= 4) { // 降低到4次有效切割
+                    explodeGoose(goose);
+                }
+            }
+        }
+
+        // 鼠标按下事件处理 - 优化操作连续性
+        function handleMouseDown(event) {
+            event.preventDefault();
+            const goose = findNearestGoose(event.clientX, event.clientY);
+            if (!goose || goose.gooseData.isExploding) return;
+            
+            // 设置当前活跃鹅
+            activeGoose = goose;
+            
+            const currentTime = Date.now();
+            goose.gooseData.mouseDownTime = currentTime;
+            goose.gooseData.mouseDownStartPos = { x: event.clientX, y: event.clientY };
+            goose.gooseData.lastX = event.clientX;
+            goose.gooseData.lastActiveTime = currentTime;
+            goose.gooseData.continuousOperation = true;
+            goose.gooseData.holdStartTime = currentTime;
+            goose.gooseData.slashStartTime = currentTime;
+            
+            // 清除之前的操作超时
+            if (goose.gooseData.operationTimeout) {
+                clearTimeout(goose.gooseData.operationTimeout);
+            }
+            
+            // 清除之前的自动爆炸定时器
+            if (goose.gooseData.autoExplodeTimer) {
+                clearInterval(goose.gooseData.autoExplodeTimer);
+            }
+            
+            if (goose.gooseData.type === 'shake') {
+                goose.gooseData.isSlashing = true;
+                goose.gooseData.slashPositions = [{x: event.clientX, y: event.clientY, time: currentTime}];
+                
+                // 显示切水果提示动画
+                const hintContainer = goose.querySelector('.shake-hint');
+                if (hintContainer) {
+                    hintContainer.style.display = 'block';
+                }
+                
+                // 开始切水果检测
+                goose.gooseData.slashInterval = setInterval(() => {
+                    checkSlashExplosion(goose);
+                }, 50);
+            } else if (goose.gooseData.type === 'split') {
+                const holdBar = goose.querySelector('.hold-progress');
+                if (holdBar) {
+                    holdBar.style.display = 'block';
+                }
+                goose.gooseData.holdStartTime = currentTime;
+                goose.gooseData.holdInterval = setInterval(() => {
+                    updateHoldProgress(goose);
+                }, 16);
+                
+                // 鸽子鹅：每秒检查一次是否达到爆炸条件，达到后立即爆炸
+                goose.gooseData.autoExplodeTimer = setInterval(() => {
+                    checkSplitAutoExplosion(goose);
+                }, 100);
+            }
+        }
+
+        // 鼠标移动事件处理
+        function handleMouseMove(event) {
+            const goose = findNearestGoose(event.clientX, event.clientY);
+            if (!goose || goose.gooseData.isExploding) return;
+            
+            const currentTime = Date.now();
+            goose.gooseData.lastActiveTime = currentTime;
+            
+            if (goose.gooseData.type === 'shake' && goose.gooseData.isSlashing) {
+                // 记录切水果的轨迹点
+                goose.gooseData.slashPositions.push({
+                    x: event.clientX, 
+                    y: event.clientY, 
+                    time: currentTime 
+                });
+                
+                // 只保留最近的点
+                if (goose.gooseData.slashPositions.length > 20) {
+                    goose.gooseData.slashPositions.shift();
+                }
+            }
+        }
+
+        // 鼠标释放事件处理 - 优化操作连续性
+        function handleMouseUp(event) {
+            const goose = findNearestGoose(event.clientX, event.clientY);
+            if (!goose || goose.gooseData.isExploding) return;
+            
+            const currentTime = Date.now();
+            const holdDuration = currentTime - goose.gooseData.mouseDownTime;
+            
+            goose.gooseData.lastActiveTime = currentTime;
+            
+            if (goose.gooseData.type === 'shake') {
+                // 榴莲：累计操作时间，不直接停止
+                goose.gooseData.accumulatedShakeCount += holdDuration;
+                
+                // 隐藏切水果提示动画
+                const hintContainer = goose.querySelector('.shake-hint');
+                if (hintContainer) {
+                    hintContainer.style.display = 'none';
+                }
+                
+                // 设置操作超时，1.5秒无操作后重置
+                goose.gooseData.operationTimeout = setTimeout(() => {
+                    resetShakeOperation(goose);
+                }, 1500);
+                
+            } else if (goose.gooseData.type === 'split') {
+                // 鸽子：累计时间，但自动爆炸机制会处理
+                goose.gooseData.accumulatedHoldTime += holdDuration;
+                
+                // 如果累计时间已经足够，立即爆炸
+                if (goose.gooseData.accumulatedHoldTime >= 1000) {
+                    explodeGoose(goose);
+                } else {
+                    const remainingTime = 1000 - goose.gooseData.accumulatedHoldTime;
+                    const holdBar = goose.querySelector('.hold-progress');
+                    if (holdBar) {
+                        holdBar.style.width = (goose.gooseData.accumulatedHoldTime / 1000 * 100) + '%';
+                        holdBar.title = `还需长按${Math.ceil(remainingTime / 1000 * 10) / 10}秒`;
+                    }
+                }
+            } else {
+                // 树枝块：点击处理，确保点击3次才爆
+                if (goose.gooseData.type === 'normal') {
+                    goose.gooseData.clickCount++;
+                    
+                    goose.classList.add('clicked');
+                    const scale = 1 + (goose.gooseData.clickCount * 0.3);
+                    goose.style.transform = `scale(${scale})`;
+                    
+                    // 只有达到最大点击次数（3次）才爆炸
+                    if (goose.gooseData.clickCount >= goose.gooseData.maxClicks) {
+                        explodeGoose(goose);
+                    }
+                }
+            }
+            
+            // 清理定时器
+            if (goose.gooseData.holdInterval) {
+                clearInterval(goose.gooseData.holdInterval);
+            }
+            
+            // 隐藏进度指示器
+            const holdBar = goose.querySelector('.hold-progress');
+            if (holdBar) holdBar.style.display = 'none';
+        }
+
+        // 鼠标离开事件处理
+        function handleMouseLeave(event) {
+            const goose = findNearestGoose(event.clientX, event.clientY);
+            if (!goose) return;
+            
+            const currentTime = Date.now();
+            goose.gooseData.lastActiveTime = currentTime;
+            
+            if (goose.gooseData.continuousOperation) {
+                if (goose.gooseData.type === 'shake') {
+                    // 对于榴莲，不立即重置，设置超时
+                    goose.gooseData.operationTimeout = setTimeout(() => {
+                        resetShakeOperation(goose);
+                    }, 1000);
+                } else {
+                    // 对于其他类型，立即停止
+                    if (goose.gooseData.slashInterval) {
+                        clearInterval(goose.gooseData.slashInterval);
+                    }
+                    if (goose.gooseData.holdInterval) {
+                        clearInterval(goose.gooseData.holdInterval);
+                    }
+                    if (goose.gooseData.autoExplodeTimer) {
+                        clearInterval(goose.gooseData.autoExplodeTimer);
+                    }
+                    
+                    if (goose.gooseData.type === 'shake') {
+                        goose.gooseData.isSlashing = false;
+                    }
+                    
+                    const hintContainer = goose.querySelector('.shake-hint');
+                    const holdBar = goose.querySelector('.hold-progress');
+                    if (hintContainer) hintContainer.style.display = 'none';
+                    if (holdBar) holdBar.style.display = 'none';
+                }
+            }
+        }
+
+        // 全局鼠标抬起事件
+        document.addEventListener('mouseup', (event) => {
+            const currentTime = Date.now();
+            
+            const geese = document.querySelectorAll('.goose:not(.exploding)');
+            geese.forEach(goose => {
+                if (goose.gooseData && goose.gooseData.continuousOperation) {
+                    const timeSinceLastActive = currentTime - goose.gooseData.lastActiveTime;
+                    
+                    if (timeSinceLastActive > 300) { // 延长到300ms
+                        goose.gooseData.continuousOperation = false;
+                        
+                        if (goose.gooseData.type === 'shake') {
+                            if (goose.gooseData.slashInterval) {
+                                clearInterval(goose.gooseData.slashInterval);
+                            }
+                            goose.gooseData.isSlashing = false;
+                            
+                            const hintContainer = goose.querySelector('.shake-hint');
+                            if (hintContainer) hintContainer.style.display = 'none';
+                        }
+                    }
+                }
+            });
+        });
+
+        // 查找最近的鹅（在500像素范围内）
+        function findNearestGoose(x, y) {
+            const geese = document.querySelectorAll('.goose:not(.exploding)');
+            let nearestGoose = null;
+            let minDistance = Infinity;
+            
+            geese.forEach(goose => {
+                const rect = goose.getBoundingClientRect();
+                const gooseCenterX = rect.left + rect.width / 2;
+                const gooseCenterY = rect.top + rect.height / 2;
+                const distance = Math.sqrt(
+                    Math.pow(x - gooseCenterX, 2) + Math.pow(y - gooseCenterY, 2)
+                );
+                
+                if (distance <= 500 && distance < minDistance) {
+                    minDistance = distance;
+                    nearestGoose = goose;
+                }
+            });
+            
+            return nearestGoose;
+        }
+
+        // 更新长按进度
+        function updateHoldProgress(goose) {
+            const currentTime = Date.now();
+            const holdDuration = currentTime - goose.gooseData.holdStartTime;
+            const progress = Math.min((goose.gooseData.accumulatedHoldTime + holdDuration) / 1000 * 100, 100);
+            const holdBar = goose.querySelector('.hold-progress');
+            if (holdBar) {
+                holdBar.style.width = progress + '%';
+                holdBar.style.background = progress < 100 ? '#4caf50' : '#ff5722';
+            }
+        }
+
+        // 处理鹅的点击事件
+        function handleGooseClick(event) {
+            event.preventDefault();
+            const goose = findNearestGoose(event.clientX, event.clientY);
+            if (!goose || goose.gooseData.isExploding) return;
+            
+            if (goose.gooseData.type === 'normal') {
+                goose.gooseData.clickCount++;
+                
+                goose.classList.add('clicked');
+                const scale = 1 + (goose.gooseData.clickCount * 0.3);
+                goose.style.transform = `scale(${scale})`;
+                
+                // 只有达到最大点击次数（3次）才爆炸
+                if (goose.gooseData.clickCount >= goose.gooseData.maxClicks) {
+                    explodeGoose(goose);
+                }
+            } else if (goose.gooseData.type === 'egg') {
+                // 鸽子蛋只需点击一次即可爆炸
+                explodeGoose(goose);
+            }
+        }
+
+        // 重置摇晃操作
+        function resetShakeOperation(goose) {
+            if (goose.gooseData.slashInterval) {
+                clearInterval(goose.gooseData.slashInterval);
+            }
+            goose.gooseData.isSlashing = false;
+            goose.gooseData.continuousOperation = false;
+            goose.gooseData.accumulatedShakeCount = 0;
+            goose.gooseData.slashPositions = [];
+            
+            // 隐藏切水果提示动画
+            const hintContainer = goose.querySelector('.shake-hint');
+            if (hintContainer) {
+                hintContainer.style.display = 'none';
+            }
+        }
+
+        // 移动鹅向中心气球
+        function moveGoose(goose) {
+            const moveInterval = setInterval(() => {
+                if (!gameState.isRunning || !goose.parentNode) {
+                    clearInterval(moveInterval);
+                    return;
+                }
+                
+                const gooseRect = goose.getBoundingClientRect();
+                const balloonRect = balloon.getBoundingClientRect();
+                
+                const deltaX = balloonRect.left - gooseRect.left + balloonRect.width/2 - gooseRect.width/2;
+                const deltaY = balloonRect.top - gooseRect.top + balloonRect.height/2 - gooseRect.height/2;
+                
+                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                
+                if (distance < 60) {
+                    // 当鹅接近气球时，开始对气球造成伤害
+                    if (!goose.gooseData.isAttacking) {
+                        goose.gooseData.isAttacking = true;
+                        gameState.attackingGeese.add(goose);
+                        startBalloonDamageTimer();
+                    }
+                } else {
+                    // 当鹅远离气球时，停止攻击
+                    if (goose.gooseData.isAttacking) {
+                        goose.gooseData.isAttacking = false;
+                        gameState.attackingGeese.delete(goose);
+                        
+                        // 如果没有鹅在攻击气球，停止伤害计时器
+                        if (gameState.attackingGeese.size === 0) {
+                            stopBalloonDamageTimer();
+                        }
+                    }
+                }
+                
+                const moveX = (deltaX / distance) * goose.gooseData.speed;
+                const moveY = (deltaY / distance) * goose.gooseData.speed;
+                
+                goose.style.left = (parseFloat(goose.style.left) + moveX) + 'px';
+                goose.style.top = (parseFloat(goose.style.top) + moveY) + 'px';
+                
+            }, 20);
+        }
+
+        // 鹅爆炸效果 - 修复位置计算
+        function explodeGoose(goose) {
+            goose.gooseData.isExploding = true;
+            
+            if (goose.gooseData.slashInterval) {
+                clearInterval(goose.gooseData.slashInterval);
+            }
+            if (goose.gooseData.holdInterval) {
+                clearInterval(goose.gooseData.holdInterval);
+            }
+            if (goose.gooseData.operationTimeout) {
+                clearTimeout(goose.gooseData.operationTimeout);
+            }
+            if (goose.gooseData.autoExplodeTimer) {
+                clearInterval(goose.gooseData.autoExplodeTimer);
+            }
+            goose.gooseData.isSlashing = false;
+            goose.gooseData.continuousOperation = false;
+            
+            // 如果这只鹅正在攻击气球，从攻击列表中移除
+            if (goose.gooseData.isAttacking) {
+                gameState.attackingGeese.delete(goose);
+                
+                // 如果没有鹅在攻击气球，停止伤害计时器
+                if (gameState.attackingGeese.size === 0) {
+                    stopBalloonDamageTimer();
+                }
+            }
+            
+            // 播放爆炸音效
+            playExplosionSound();
+            
+            // 如果是鸽子，爆炸后生成两个鸽子蛋
+            if (goose.gooseData.type === 'split') {
+                const x = parseFloat(goose.style.left);
+                const y = parseFloat(goose.style.top);
+                createEggGooses(x, y);
+            }
+            
+            // 修复爆炸效果位置：使用鹅的实际位置计算中心点
+            const gooseRect = goose.getBoundingClientRect();
+            const containerRect = gameContainer.getBoundingClientRect();
+            const centerX = gooseRect.left - containerRect.left + gooseRect.width / 2;
+            const centerY = gooseRect.top - containerRect.top + gooseRect.height / 2;
+            
+            const explosion = document.createElement('div');
+            explosion.className = 'explosion';
+            explosion.style.left = (centerX - 40) + 'px'; // 40是爆炸效果半径
+            explosion.style.top = (centerY - 40) + 'px';
+            
+            gameContainer.appendChild(explosion);
+            
+            goose.remove();
+            
+            gameState.score += 10;
+            scoreDisplay.textContent = gameState.score;
+            
+            setTimeout(() => {
+                explosion.remove();
+            }, 400);
+        }
+
+        // 创建鸽子蛋
+        function createEggGooses(x, y) {
+            for (let i = 0; i < 2; i++) {
+                const eggGoose = document.createElement('div');
+                eggGoose.className = 'goose egg';
+                eggGoose.style.left = (x + (i === 0 ? -25 : 25)) + 'px';
+                eggGoose.style.top = y + 'px';
+                
+                eggGoose.gooseData = {
+                    type: 'egg',
+                    isExploding: false,
+                    speed: gameState.gooseSpeed * 0.5
+                };
+                
+                eggGoose.addEventListener('click', handleGooseClick);
+                eggGoose.addEventListener('mousedown', handleMouseDown);
+                eggGoose.addEventListener('mousemove', handleMouseMove);
+                eggGoose.addEventListener('mouseup', handleMouseUp);
+                eggGoose.addEventListener('mouseleave', handleMouseLeave);
+                eggGoose.addEventListener('touchstart', handleTouchStart, { passive: false });
+                eggGoose.addEventListener('touchmove', handleTouchMove, { passive: false });
+                eggGoose.addEventListener('touchend', handleTouchEnd, { passive: false });
+                eggGoose.addEventListener('touchcancel', handleTouchCancel, { passive: false });
+                
+                gameContainer.appendChild(eggGoose);
+                moveGoose(eggGoose);
+            }
+        }
+
+        // 游戏胜利
+        function winGame() {
+            gameState.isRunning = false;
+            clearInterval(gameState.gameTimer);
+            clearInterval(gameState.spawnTimer);
+            clearInterval(gameState.balloonDamageTimer);
+            
+            // 停止背景音乐并播放成功音效
+            stopBackgroundMusic();
+            playSuccessSound();
+            
+            gameResult.textContent = '🎉 恭喜胜利！';
+            resultMessage.innerHTML = `你成功守护了气球${60}秒！<br>最终得分：${gameState.score}<br>达到等级：${gameState.level}`;
+            gameOverModal.style.display = 'flex';
+        }
+
+        // 游戏失败
+        function loseGame() {
+            gameState.isRunning = false;
+            clearInterval(gameState.gameTimer);
+            clearInterval(gameState.spawnTimer);
+            clearInterval(gameState.balloonDamageTimer);
+            
+            // 停止背景音乐并播放失败音效
+            stopBackgroundMusic();
+            playFailSound();
+            
+            gameResult.textContent = '💥 游戏失败！';
+            resultMessage.innerHTML = `气球炸了！<br>最终得分：${gameState.score}<br>坚持时间：${60 - gameState.timeLeft}秒<br>失败时等级：${gameState.level}`;
+            gameOverModal.style.display = 'flex';
+        }
+
+        // 重新开始游戏
+        function restartGame() {
+            // 停止所有音效
+            stopBackgroundMusic();
+            explosionSound.pause();
+            explosionSound.currentTime = 0;
+            failSound.pause();
+            failSound.currentTime = 0;
+            successSound.pause();
+            successSound.currentTime = 0;
+            
+            initGame();
+        }
+
+        // 页面加载完成后自动开始游戏
+        window.addEventListener('load', () => {
+            initGame();
+        });
+
+        // 防止右键菜单影响游戏体验
+        document.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
+    </script>
+</body>
+</html>
